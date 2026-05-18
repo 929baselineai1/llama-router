@@ -15,15 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - tag: vulkan-radv
+            dockerfile: toolboxes/Dockerfile.vulkan-radv
+          - tag: vulkan-amdvlk
+            dockerfile: toolboxes/Dockerfile.vulkan-amdvlk
           - tag: rocm
             dockerfile: toolboxes/Dockerfile.rocm
-            platform: linux/amd64
           - tag: cuda
             dockerfile: toolboxes/Dockerfile.cuda
-            platform: linux/amd64
           - tag: cpu
             dockerfile: toolboxes/Dockerfile.cpu
-            platform: linux/amd64
 
     steps:
       - name: Checkout
@@ -54,7 +55,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |

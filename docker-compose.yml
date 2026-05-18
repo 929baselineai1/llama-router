@@ -1,4 +1,54 @@
 services:
+  llama-router-vulkan-radv:
+    build:
+      context: .
+      dockerfile: toolboxes/Dockerfile.vulkan-radv
+    image: ghcr.io/baselineai/llama-router:vulkan-radv
+    container_name: llama-router-vulkan-radv
+    environment:
+      - MODEL_DIR=/models
+      - NGPU_LAYERS=99
+      - CTX_SIZE=131072
+      - BATCH_SIZE=512
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+      - "8099:8099"
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp=unconfined
+    restart: unless-stopped
+
+  llama-router-vulkan-amdvlk:
+    build:
+      context: .
+      dockerfile: toolboxes/Dockerfile.vulkan-amdvlk
+    image: ghcr.io/baselineai/llama-router:vulkan-amdvlk
+    container_name: llama-router-vulkan-amdvlk
+    environment:
+      - MODEL_DIR=/models
+      - NGPU_LAYERS=99
+      - CTX_SIZE=131072
+      - BATCH_SIZE=512
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+      - "8099:8099"
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp=unconfined
+    restart: unless-stopped
+
   llama-router-rocm:
     build:
       context: .
@@ -13,9 +63,9 @@ services:
     volumes:
       - ./models:/models
     ports:
-      - "8080:8080"   # llama-server API
-      - "8090:8090"   # UI backend (proxy + restart)
-      - "8099:8099"   # UI frontend
+      - "8080:8080"
+      - "8090:8090"
+      - "8099:8099"
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
