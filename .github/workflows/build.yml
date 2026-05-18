@@ -25,6 +25,12 @@ jobs:
         with:
           driver: docker
 
+      - name: Wipe all Docker credentials
+        run: |
+          rm -rf ~/.docker
+          mkdir -p ~/.docker
+          echo '{}' > ~/.docker/config.json
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
