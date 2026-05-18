@@ -23,13 +23,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      # Log out of all registries to ensure clean state for anonymous pulls
+      - name: Log out of all registries
+        run: |
+          docker logout ghcr.io 2>/dev/null || true
+          docker logout docker.io 2>/dev/null || true
+          # Clear any cached credentials
+          rm -f ~/.docker/config.json
+          mkdir -p ~/.docker
+
       - name: Build and push
         uses: docker/build-push-action@v6
-        env:
-          HTTP_PROXY: ""
-          HTTPS_PROXY: ""
-          http_proxy: ""
-          https_proxy: ""
         with:
           context: .
           file: toolboxes/Dockerfile.${{ matrix.tag }}
