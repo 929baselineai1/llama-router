@@ -1,0 +1,13 @@
+# Build artifacts
+build/
+*.log
+
+# Models (mounted as volume, never in repo)
+*.gguf
+*.gguf.*
+
+# Environment
+.env
+
+# Local builds
+llama-router-*.tar
