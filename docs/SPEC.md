@@ -127,7 +127,7 @@ mtp = false
 spec_dec = false
 ```
 
-> Note: Since llama-server is likely running on the M5/host and the UI is served from there, file writes are straightforward. If serving remotely, add a note that the server must have write access to the models dir.
+> Note: Since llama-server runs on the host and the UI is served from there, file writes are straightforward. If serving remotely, ensure the server has write access to the models dir.
 
 ### 4.4 Status Bar (bottom)
 - Shows last API call: method + endpoint + model
@@ -226,4 +226,4 @@ llama-router-ui/
 ---
 
 **Status:** Built — `routerUI.html` ready
-**Ready for:** Jerome test and feedback
+**Status:** Ready for test and feedback

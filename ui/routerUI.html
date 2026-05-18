@@ -92,8 +92,10 @@
 </div>
 <div id="toast" class="toast" style="display:none;"></div>
 <script>
-const API = 'http://100.88.145.111:8090';
-const SAVER = 'http://100.88.145.111:8090';
+// Auto-detect host from current page location
+const HOST = window.location.hostname;
+const API = 'http://' + HOST + ':8090';
+const SAVER = 'http://' + HOST + ':8090';
 let models = [];
 let selectedModel = null;
 let modelParams = {};

@@ -7,7 +7,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 PORT = 8090
-PRESETS = "/home/baselineai-1/models/Keep/llama-presets.ini"
+PRESETS = os.environ.get("PRESETS", "/models/llama-presets.ini")
 PID_FILE = "/tmp/llama-server.pid"
 LOG_FILE = "/tmp/llama-server.log"
 RESTART_SCRIPT = "/tmp/llama-server-restart.sh"

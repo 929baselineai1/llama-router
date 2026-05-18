@@ -79,7 +79,7 @@ http://localhost:8099/routerUI.html
 Or from any device on your network — replace `localhost` with the host IP:
 
 ```
-http://192.168.1.100:8099/routerUI.html
+http://192.168.x.x:8099/routerUI.html
 ```
 
 ---
@@ -146,8 +146,8 @@ The control panel and API are designed to be accessed over LAN. For remote acces
 curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
 
-# Then access via your Tailscale IP (e.g., 100.88.145.111)
-# http://100.88.145.111:8099/routerUI.html
+# Then access via your Tailscale IP (e.g., 100.x.x.x)
+# http://100.x.x.x:8099/routerUI.html
 ```
 
 **Option 2 — Cloudflare Tunnel:**
