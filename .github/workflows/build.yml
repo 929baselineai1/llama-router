@@ -31,6 +31,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clear Docker auth
+        run: |
+          docker logout ghcr.io 2>/dev/null || true
+          # Ensure anonymous Docker Hub pulls work
+          mkdir -p ~/.docker
+          echo '{}' > ~/.docker/config.json
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
