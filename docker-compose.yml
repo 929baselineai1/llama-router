@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: toolboxes/Dockerfile.vulkan-radv
-    image: ghcr.io/baselineai/llama-router:vulkan-radv
+    image: ghcr.io/929baselineai1/llama-router:vulkan-radv
     container_name: llama-router-vulkan-radv
     environment:
       - MODEL_DIR=/models
@@ -28,7 +28,7 @@ services:
     build:
       context: .
       dockerfile: toolboxes/Dockerfile.vulkan-amdvlk
-    image: ghcr.io/baselineai/llama-router:vulkan-amdvlk
+    image: ghcr.io/929baselineai1/llama-router:vulkan-amdvlk
     container_name: llama-router-vulkan-amdvlk
     environment:
       - MODEL_DIR=/models
@@ -53,7 +53,7 @@ services:
     build:
       context: .
       dockerfile: toolboxes/Dockerfile.rocm
-    image: ghcr.io/baselineai/llama-router:rocm
+    image: ghcr.io/929baselineai1/llama-router:rocm
     container_name: llama-router-rocm
     environment:
       - MODEL_DIR=/models
@@ -80,7 +80,7 @@ services:
     build:
       context: .
       dockerfile: toolboxes/Dockerfile.cuda
-    image: ghcr.io/baselineai/llama-router:cuda
+    image: ghcr.io/929baselineai1/llama-router:cuda
     container_name: llama-router-cuda
     environment:
       - MODEL_DIR=/models
@@ -106,7 +106,7 @@ services:
     build:
       context: .
       dockerfile: toolboxes/Dockerfile.cpu
-    image: ghcr.io/baselineai/llama-router:cpu
+    image: ghcr.io/929baselineai1/llama-router:cpu
     container_name: llama-router-cpu
     environment:
       - MODEL_DIR=/models
