@@ -1,5 +1,5 @@
 # Build stage - compile llama.cpp with Vulkan for AMD GPUs (Mesa RADV)
-FROM fedora:43 AS builder
+FROM registry.fedoraproject.org/fedora:43 AS builder
 
 # Vulkan + build deps
 RUN dnf -y --nodocs --setopt=install_weak_deps=False \
@@ -36,7 +36,7 @@ RUN find /opt/llama.cpp/build -type f -name 'lib*.so*' -exec cp {} /usr/lib64/ \
   && ldconfig
 
 # runtime stage
-FROM fedora-minimal:43
+FROM registry.fedoraproject.org/fedora-minimal:43
 
 # Vulkan runtime deps
 RUN microdnf -y --nodocs --setopt=install_weak_deps=0 \

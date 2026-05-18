@@ -1,5 +1,5 @@
 # Build stage - compile llama.cpp CPU-only
-FROM fedora:43 AS builder
+FROM registry.fedoraproject.org/fedora:43 AS builder
 
 # Build deps
 RUN dnf -y --nodocs --setopt=install_weak_deps=False \
@@ -27,7 +27,7 @@ RUN git clean -xdf \
 RUN cp build/bin/llama-server /usr/local/bin/
 
 # Runtime stage
-FROM fedora-minimal:43
+FROM registry.fedoraproject.org/fedora-minimal:43
 
 # Runtime deps
 RUN microdnf -y --nodocs --setopt=install_weak_deps=0 \

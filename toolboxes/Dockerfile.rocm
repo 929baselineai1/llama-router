@@ -1,5 +1,5 @@
 # Build stage - compile llama.cpp with HIP for AMD GPUs
-FROM registry.fedoraproject.org.org/fedora:43 AS builder
+FROM registry.fedoraproject.org/fedora:43 AS builder
 
 # ROCm 7.2.3 repo
 RUN <<'EOF'
