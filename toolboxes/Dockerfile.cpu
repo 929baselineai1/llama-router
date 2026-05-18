@@ -1,0 +1,47 @@
+# Build stage - compile llama.cpp CPU-only
+FROM fedora:43 AS builder
+
+# Build deps
+RUN dnf -y --nodocs --setopt=install_weak_deps=False \
+  --exclude='*sdk*' --exclude='*samples*' --exclude='*-doc*' --exclude='*-docs*' \
+  install \
+  make gcc cmake lld clang clang-devel compiler-rt \
+  libcurl-devel ninja-build \
+  git-core vim sudo rsync patch \
+  && dnf clean all && rm -rf /var/cache/dnf/*
+
+# llama.cpp
+WORKDIR /opt/llama.cpp
+ARG REPO=https://github.com/ggerganov/llama.cpp.git
+ARG BRANCH=master
+RUN git clone -b ${BRANCH} --single-branch --recursive ${REPO} .
+
+# Build - no GPU
+RUN git clean -xdf \
+  && git submodule update --recursive \
+  && cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DGGML_CPU_ONLY=ON \
+  && cmake --build build --config Release -- -j$(nproc)
+
+RUN cp build/bin/llama-server /usr/local/bin/
+
+# Runtime stage
+FROM fedora-minimal:43
+
+# Runtime deps
+RUN microdnf -y --nodocs --setopt=install_weak_deps=0 \
+  install bash ca-certificates libatomic libstdc++ libgcc python3 python3-pip \
+  && microdnf clean all && rm -rf /var/cache/dnf/*
+
+COPY --from=builder /usr/local/bin/llama-server /usr/local/bin/
+
+# UI + backend
+COPY ui/ /app/ui/
+COPY docs/SPEC.md /app/docs/
+COPY scripts/entrypoint.sh /usr/local/bin/llama-router-entrypoint
+RUN chmod +x /usr/local/bin/llama-router-entrypoint
+
+EXPOSE 8080 8090 8099
+
+CMD ["/usr/local/bin/llama-router-entrypoint"]

@@ -1,0 +1,26 @@
+# Llama Router - Base layer
+# Includes: llama.cpp binary + UI files
+# Variants (rocm/cuda/cpu) inherit from this and add their GPU backend
+
+FROM fedora:43 AS base
+
+# Install common deps
+RUN dnf -y --nodocs --setopt=install_weak_deps=False \
+  --exclude='*sdk*' --exclude='*samples*' --exclude='*-doc*' --exclude='*-docs*' \
+  install \
+  bash ca-certificates python3 python3-pip \
+  git vim sudo rsync curl \
+  && dnf clean all && rm -rf /var/cache/dnf/*
+
+# UI + backend
+WORKDIR /app
+COPY ui/ /app/ui/
+COPY docs/SPEC.md /app/docs/
+
+# Entrypoint
+COPY scripts/entrypoint.sh /usr/local/bin/llama-router-entrypoint
+RUN chmod +x /usr/local/bin/llama-router-entrypoint
+
+EXPOSE 8080 8090 8099
+
+CMD ["/usr/local/bin/llama-router-entrypoint"]

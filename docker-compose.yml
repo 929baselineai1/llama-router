@@ -1,0 +1,72 @@
+services:
+  llama-router-rocm:
+    build:
+      context: .
+      dockerfile: toolboxes/Dockerfile.rocm
+    image: ghcr.io/baselineai/llama-router:rocm
+    container_name: llama-router-rocm
+    environment:
+      - MODEL_DIR=/models
+      - NGPU_LAYERS=99
+      - CTX_SIZE=131072
+      - BATCH_SIZE=512
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"   # llama-server API
+      - "8090:8090"   # UI backend (proxy + restart)
+      - "8099:8099"   # UI frontend
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp=unconfined
+    restart: unless-stopped
+
+  llama-router-cuda:
+    build:
+      context: .
+      dockerfile: toolboxes/Dockerfile.cuda
+    image: ghcr.io/baselineai/llama-router:cuda
+    container_name: llama-router-cuda
+    environment:
+      - MODEL_DIR=/models
+      - NGPU_LAYERS=99
+      - CTX_SIZE=131072
+      - BATCH_SIZE=512
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+      - "8099:8099"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  llama-router-cpu:
+    build:
+      context: .
+      dockerfile: toolboxes/Dockerfile.cpu
+    image: ghcr.io/baselineai/llama-router:cpu
+    container_name: llama-router-cpu
+    environment:
+      - MODEL_DIR=/models
+      - NGPU_LAYERS=0
+      - CTX_SIZE=8192
+      - BATCH_SIZE=512
+    volumes:
+      - ./models:/models
+    ports:
+      - "8080:8080"
+      - "8090:8090"
+      - "8099:8099"
+    restart: unless-stopped

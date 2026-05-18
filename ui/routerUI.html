@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Llama Router</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0d0d; color: #e5e5e5; font-family: Consolas, monospace; font-size: 14px; height: 100vh; height: 100dvh; overflow: hidden; }
+    .main { display: grid; grid-template-columns: 1fr; height: 100vh; height: 100dvh; }
+    @media (min-width: 900px) { .main { grid-template-columns: 280px 1fr 260px; } }
+    .panel { border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden; }
+    .panel:last-child { border-right: none; }
+    .panel-header { padding: 12px 16px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #737373; border-bottom: 1px solid #2a2a2a; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+    .model-item { padding: 12px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; border-left: 3px solid transparent; transition: background 150ms; }
+    .model-item:hover { background: #1a1a1a; }
+    .model-item.active { border-left-color: #fff; background: #1a1a1a; }
+    .model-item .name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .model-item .meta { font-size: 11px; color: #737373; margin-top: 4px; }
+    .param-row { margin-bottom: 14px; }
+    .param-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+    .param-label .name { color: #e5e5e5; }
+    .param-label .value input { background: #111; border: 1px solid #2a2a2a; border-radius: 4px; color: #fff; font-family: inherit; font-size: 12px; width: 70px; padding: 2px 6px; text-align: right; }
+    input[type=range] { width: 100%; accent-color: #fff; cursor: pointer; height: 20px; }
+    .param-section { margin-bottom: 16px; }
+    .param-section-title { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #737373; margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
+    .model-name-title { font-size: 14px; font-weight: 700; color: #fff; padding: 12px 0 8px; border-bottom: 1px solid #2a2a2a; margin-bottom: 16px; word-break: break-all; }
+    #status-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 11px; border-top: 1px solid #2a2a2a; background: #111; flex-wrap: wrap; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.online { background: #22c55e; }
+    .dot.offline { background: #ef4444; }
+    .dot.reloading { background: #f59e0b; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    #last-call { margin-left: auto; color: #737373; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+    .empty-state { padding: 24px; text-align: center; color: #737373; font-size: 13px; }
+    .btn { display: block; width: 100%; padding: 12px; border: 1px solid #2a2a2a; border-radius: 8px; background: transparent; color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; margin-top: 8px; transition: background 150ms; }
+    .btn:hover { background: #1a1a1a; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: #fff; color: #0d0d0d; border-color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #e5e5e5; }
+    .tool-section { padding: 8px 0; border-bottom: 1px solid #2a2a2a; }
+    .tool-section:last-child { border-bottom: none; }
+    .section-title { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #737373; margin-bottom: 6px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 8px; font-size: 12px; font-weight: 700; z-index: 999; opacity: 1; transition: opacity 0.3s; }
+    .toast { background: #fff; color: #0d0d0d; }
+    .toast.error { background: #ef4444; color: #fff; }
+    .toast.success { background: #22c55e; color: #fff; }
+    input[type=text] { width: 100%; background: #111; border: 1px solid #2a2a2a; border-radius: 6px; color: #fff; font-family: inherit; font-size: 12px; padding: 8px; box-sizing: border-box; }
+    .restart-note { font-size: 10px; color: #737373; margin-top: 6px; line-height: 1.4; }
+    .reload-status { padding: 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; text-align: center; display: none; }
+    .reload-status.active { display: block; }
+    .reload-status.reloading { background: #f59e0b22; border: 1px solid #f59e0b; color: #f59e0b; }
+    .reload-status.done { background: #22c55e22; border: 1px solid #22c55e; color: #22c55e; }
+    .reload-status.error { background: #ef444422; border: 1px solid #ef4444; color: #ef4444; }
+  </style>
+</head>
+<body>
+<div class="main">
+  <div class="panel">
+    <div class="panel-header">Models <span id="model-count"></span></div>
+    <div class="panel-body" id="model-list">Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Parameters</div>
+    <div class="panel-body" id="param-editor">
+      <div class="empty-state">Tap a model to configure</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">System</div>
+    <div class="panel-body" id="tools-panel">
+      <div id="reload-status" class="reload-status"></div>
+      <div id="status-bar">
+        <div class="dot offline" id="status-dot"></div>
+        <span id="server-label">offline</span>
+        <span id="last-call"></span>
+      </div>
+      <div class="tool-section">
+        <div class="section-title">Actions</div>
+        <button class="btn btn-primary" id="save-btn" onclick="saveAndReload()" disabled>Save &amp; Reload</button>
+        <div class="restart-note">Writes INI, kills &amp; restarts server (~20s)</div>
+        <button class="btn" onclick="loadModels()">Refresh Models</button>
+      </div>
+      <div class="tool-section">
+        <div class="section-title">HF Download</div>
+        <input type="text" id="hf-repo" placeholder="e.g. unsloth/Qwen3-1.7B-GGUF">
+        <button class="btn" onclick="downloadHf()" style="margin-top:6px;">Download GGUF</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast" style="display:none;"></div>
+<script>
+const API = 'http://100.88.145.111:8090';
+const SAVER = 'http://100.88.145.111:8090';
+let models = [];
+let selectedModel = null;
+let modelParams = {};
+let isReloading = false;
+
+function setOnline(online) {
+  if (isReloading) return;
+  document.getElementById('status-dot').className = 'dot ' + (online ? 'online' : 'offline');
+  document.getElementById('server-label').textContent = online ? 'online' : 'offline';
+}
+
+function showReloadStatus(msg, type) {
+  const el = document.getElementById('reload-status');
+  el.textContent = msg;
+  el.className = 'reload-status active ' + type;
+}
+
+function clearReloadStatus() {
+  const el = document.getElementById('reload-status');
+  el.className = 'reload-status';
+  el.textContent = '';
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (type || '');
+  el.style.display = 'block';
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 300); }, 3000);
+}
+
+async function api(path, opts = {}) {
+  try {
+    const r = await fetch(API + path, opts);
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error?.message || 'HTTP ' + r.status);
+    }
+    setOnline(true);
+    return await r.json();
+  } catch (err) {
+    setOnline(false);
+    throw err;
+  }
+}
+
+async function saverApi(path, opts = {}) {
+  const r = await fetch(SAVER + path, opts);
+  if (!r.ok) throw new Error('Saver HTTP ' + r.status);
+  return await r.json();
+}
+
+let currentModelAlias = null;
+
+async function loadModels() {
+  if (isReloading) return;
+  try {
+    const [data, propsData] = await Promise.all([
+      api('/models').catch(() => ({ data: [] })),
+      api('/props').catch(() => ({ model_alias: null }))
+    ]);
+    models = data.data || [];
+    currentModelAlias = propsData.model_alias || null;
+    renderModelList();
+    setOnline(true);
+  } catch {
+    models = [];
+    renderModelList();
+    setOnline(false);
+  }
+}
+
+function renderModelList() {
+  const el = document.getElementById('model-list');
+  document.getElementById('model-count').textContent = models.length ? '(' + models.length + ')' : '';
+  if (!models.length) { el.innerHTML = '<div class="empty-state">No models found</div>'; return; }
+  el.innerHTML = '';
+  models.forEach(m => {
+    const name = m.id || m.name;
+    const isLoaded = currentModelAlias && (currentModelAlias === name || currentModelAlias.endsWith(name) || name.endsWith(currentModelAlias));
+    const div = document.createElement('div');
+    div.className = 'model-item' + (selectedModel === name ? ' active' : '');
+    div.innerHTML = '<div class="name" title="' + name + '">' + name + '</div><div class="meta"><span class="badge ' + (isLoaded ? 'loaded' : 'unloaded') + '">' + (isLoaded ? 'loaded' : 'unloaded') + '</span></div>';
+    div.onclick = () => { if (!isReloading) selectModel(name); };
+    el.appendChild(div);
+  });
+}
+
+async function selectModel(name) {
+  selectedModel = name;
+  renderModelList();
+  document.getElementById('last-call').textContent = 'Selected: ' + name;
+  document.getElementById('save-btn').disabled = false;
+  modelParams = { model: name };
+  try {
+    const props = await api('/props');
+    const rp = props.default_generation_settings?.params;
+    if (rp && typeof rp === 'object' && Object.keys(rp).length) {
+      Object.assign(modelParams, rp);
+    }
+  } catch { /* network error */ }
+  ['temperature','n_ctx','presence_penalty','frequency_penalty'].forEach(k => {
+    if (modelParams[k] == null) modelParams[k] = (k === 'temperature' ? 0.7 : k === 'n_ctx' ? 4096 : 0); ['presence_penalty','frequency_penalty'].forEach(k => { if (modelParams[k] == null) modelParams[k] = 0; });
+  });
+  renderParamEditor();
+}
+
+function renderParamEditor() {
+  const el = document.getElementById('param-editor');
+  const p = modelParams;
+  if (!selectedModel) { el.innerHTML = '<div class="empty-state">Tap a model to configure</div>'; return; }
+  el.innerHTML = `
+    <div class="model-name-title">${selectedModel}</div>
+    <div class="param-section">
+      <div class="param-section-title">Sampling</div>
+      ${slider('temperature', p.temperature ?? 0.7, 0, 2, 0.05)}
+      ${slider('top_p', p.top_p ?? 0.9, 0, 1, 0.05)}
+      ${slider('top_k', p.top_k ?? 40, 0, 200, 1)}
+      ${slider('min_p', p.min_p ?? 0.05, 0, 1, 0.01)}
+      ${slider('repeat_penalty', p.repeat_penalty ?? 1.0, 0.5, 2, 0.05)}
+    </div>
+    <div class="param-section">
+      <div class="param-section-title">Context</div>
+      ${slider('n_ctx', p.n_ctx ?? 4096, 512, 131072, 512)}
+    </div>
+
+
+    <div class="param-section">
+      <div class="param-section-title">Penalties</div>
+      ${slider('presence_penalty', p.presence_penalty ?? 0, -2, 2, 0.05)}
+      ${slider('frequency_penalty', p.frequency_penalty ?? 0, -2, 2, 0.05)}
+    </div>
+  `;
+}
+
+function slider(name, value, min, max, step) {
+  const safeVal = (value == null || isNaN(value)) ? 0 : value;
+  const displayVal = Number.isInteger(step) ? Math.round(safeVal) : safeVal.toFixed(2);
+  const id = 'p-' + name;
+  return `<div class="param-row">
+    <div class="param-label">
+      <span class="name">${name.replace(/_/g, ' ')}</span>
+      <span class="value"><input type="number" id="${id}-in" value="${displayVal}" min="${min}" max="${max}" step="${step}" onchange="syncInput('${name}', parseFloat(this.value))"></span>
+    </div>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${safeVal}" oninput="syncInput('${name}', parseFloat(this.value))">
+  </div>`;
+}
+
+function syncInput(name, val) {
+  modelParams[name] = val;
+  const rng = document.getElementById('p-' + name);
+  const num = document.getElementById('p-' + name + '-in');
+  if (rng) rng.value = val;
+  if (num) num.value = val;
+}
+
+async function saveAndReload() {
+  if (!selectedModel || isReloading) return;
+  isReloading = true;
+  document.getElementById('save-btn').disabled = true;
+  document.querySelectorAll('.model-item').forEach(el => el.style.pointerEvents = 'none');
+  showReloadStatus('Saving params…', 'reloading');
+  document.getElementById('status-dot').className = 'dot reloading';
+  document.getElementById('server-label').textContent = 'reloading';
+  document.getElementById('last-call').textContent = 'Restarting…';
+
+  try {
+    const result = await saverApi('/save?model=' + encodeURIComponent(selectedModel), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(modelParams)
+    });
+
+    if (result.success) {
+      showReloadStatus('Server restarting — waiting…', 'reloading');
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          await fetch(API + '/props', { signal: AbortSignal.timeout(3000) });
+          clearInterval(poll);
+          isReloading = false;
+          showReloadStatus('✓ Server back online', 'done');
+          setTimeout(clearReloadStatus, 3000);
+          document.getElementById('status-dot').className = 'dot online';
+          document.getElementById('server-label').textContent = 'online';
+          document.getElementById('last-call').textContent = 'Saved & reloaded';
+          document.querySelectorAll('.model-item').forEach(el => el.style.pointerEvents = '');
+          document.getElementById('save-btn').disabled = false;
+          await loadModels();
+          // Reload the model
+          showReloadStatus('Model loading…', 'reloading');
+          try {
+            await api('/models/load', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ model: selectedModel }) });
+            showReloadStatus('✓ Model loaded', 'done');
+            setTimeout(clearReloadStatus, 2000);
+            await loadModels(); // refresh loaded state
+          } catch(e) {
+            showReloadStatus('Model load failed: ' + e.message, 'error');
+            setTimeout(clearReloadStatus, 4000);
+            document.getElementById('save-btn').disabled = false;
+          }
+        } catch {
+          if (attempts > 40) {
+            clearInterval(poll);
+            isReloading = false;
+            showReloadStatus('✗ Restart timeout — check server manually', 'error');
+            setTimeout(clearReloadStatus, 6000);
+            document.getElementById('status-dot').className = 'dot offline';
+            document.getElementById('server-label').textContent = 'offline?';
+            document.querySelectorAll('.model-item').forEach(el => el.style.pointerEvents = '');
+            document.getElementById('save-btn').disabled = false;
+          }
+        }
+      }, 1000);
+    } else {
+      throw new Error(result.message || 'Save failed');
+    }
+  } catch (e) {
+    isReloading = false;
+    showReloadStatus('✗ ' + e.message, 'error');
+    setTimeout(clearReloadStatus, 4000);
+    document.getElementById('status-dot').className = 'dot online';
+    document.getElementById('server-label').textContent = 'online';
+    document.querySelectorAll('.model-item').forEach(el => el.style.pointerEvents = '');
+    document.getElementById('save-btn').disabled = false;
+  }
+}
+
+async function downloadHf() {
+  toast('HF download needs manual setup', '');
+}
+
+loadModels();
+</script>
+</body>
+</html>

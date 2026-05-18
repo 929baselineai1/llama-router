@@ -1,0 +1,64 @@
+# Build stage - compile llama.cpp with CUDA for NVIDIA GPUs
+FROM nvidia/cuda:12.4.1-devel-ubuntu24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_ROOT=/usr/local/cuda
+
+# Build deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  make gcc cmake lld clang clang-devel \
+  libcurl4-openssl-dev ninja-build \
+  git vim sudo rsync patch \
+  && rm -rf /var/lib/apt/lists/*
+
+# llama.cpp
+WORKDIR /opt/llama.cpp
+ARG REPO=https://github.com/ggerganov/llama.cpp.git
+ARG BRANCH=master
+RUN git clone -b ${BRANCH} --single-branch --recursive ${REPO} .
+
+# Build with CUDA
+RUN git clean -xdf \
+  && git submodule update --recursive \
+  && cmake -S . -B build \
+    -DGGML_CUDA=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES=80;90;90a \
+    -DGGML_RPC=ON \
+  && cmake --build build --config Release -- -j$(nproc)
+
+# Install binaries
+RUN cp build/bin/llama-server /usr/local/bin/ \
+  && cp build/bin/rpc-* /usr/local/bin/ 2>/dev/null || true
+
+# Copy libs
+RUN cp build/lib*.so* /usr/local/lib/ 2>/dev/null || true
+
+# Runtime stage
+FROM nvidia/cuda:12.4.1-runtime-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CUDA_ROOT=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:$PATH
+
+# Runtime deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash ca-certificates libatomic1 libstdc++6 libgcc-s1 \
+  python3 python3-pip libcurl4 \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy from build
+COPY --from=builder /usr/local/bin/llama-server /usr/local/bin/
+COPY --from=builder /usr/local/lib/lib*.so* /usr/local/lib/ 2>/dev/null || true
+
+RUN ldconfig || true
+
+# UI + backend
+COPY ui/ /app/ui/
+COPY docs/SPEC.md /app/docs/
+COPY scripts/entrypoint.sh /usr/local/bin/llama-router-entrypoint
+RUN chmod +x /usr/local/bin/llama-router-entrypoint
+
+EXPOSE 8080 8090 8099
+
+CMD ["/usr/local/bin/llama-router-entrypoint"]

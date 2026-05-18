@@ -1,0 +1,25 @@
+version = 1
+
+# Wildcard defaults for all models
+[*]
+c = 8192
+n-gpu-layers = 99
+flash-attn = on
+
+# Per-model overrides
+[Qwen3.6-35B-A3B-Claude-4.7-Opus-Reasoning-Distilled-APEX-I-Balanced]
+temperature = 0.7
+c = 131072
+
+[Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-IQ4_NL]
+temperature = 0.7
+c = 131072
+
+[Qwen3.6-35B-A3B-uncensored-heretic-APEX-I-Balanced]
+temperature = 0.5
+top-p = 0.85
+top-k = 25
+repeat-penalty = 1.05
+presence-penalty = 0
+frequency-penalty = 0
+c = 131072
