@@ -31,12 +31,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clear Docker auth
+      - name: Configure Docker for anonymous Hub pulls
         run: |
-          docker logout ghcr.io 2>/dev/null || true
-          # Ensure anonymous Docker Hub pulls work
+          # Remove any stored Docker Hub credentials so pulls are anonymous
           mkdir -p ~/.docker
-          echo '{}' > ~/.docker/config.json
+          cat > ~/.docker/config.json << 'DOCKERCFG'
+          {
+            "auths": {},
+            "HttpHeaders": {
+              "User-Agent": "Docker-Client"
+            }
+          }
+          DOCKERCFG
 
       - name: Build and push
         uses: docker/build-push-action@v6
