@@ -25,24 +25,14 @@ jobs:
         with:
           driver: docker
 
-      - name: Login to GitHub Container Registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: toolboxes/Dockerfile.${{ matrix.tag }}
           platforms: linux/amd64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.tag }}:latest
-            ghcr.io/${{ github.repository }}/${{ matrix.tag }}:${{ github.sha }}
+          push: false
+          tags: test
           build-args: |
             REPO=https://github.com/ggerganov/llama.cpp.git
             BRANCH=master
